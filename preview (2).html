@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sút Penalty ⚽</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(#55b9ff, #b9e8ff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game {
+    width: 95%;
+    max-width: 700px;
+    text-align: center;
+}
+
+h1 {
+    color: white;
+    text-shadow: 2px 2px 4px #333;
+    margin: 10px;
+}
+
+.info {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(0,0,0,.65);
+    color: white;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.field {
+    position: relative;
+    width: 100%;
+    height: 430px;
+    overflow: hidden;
+    border-radius: 15px;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #35a84c 0px,
+            #35a84c 70px,
+            #2f9944 70px,
+            #2f9944 140px
+        );
+    border: 5px solid white;
+}
+
+.field::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 45%;
+    border-top: 3px solid rgba(255,255,255,.8);
+}
+
+.goal {
+    position: absolute;
+    top: 35px;
+    left: 15%;
+    width: 70%;
+    height: 170px;
+    border: 8px solid white;
+    border-bottom: 12px solid white;
+    background:
+        linear-gradient(90deg,
+        transparent 24%,
+        rgba(255,255,255,.35) 25%,
+        transparent 26%,
+        transparent 49%,
+        rgba(255,255,255,.35) 50%,
+        transparent 51%,
+        transparent 74%,
+        rgba(255,255,255,.35) 75%,
+        transparent 76%
+        ),
+        linear-gradient(
+        rgba(255,255,255,.2) 1px,
+        transparent 1px
+        );
+    background-size: auto, 35px 35px;
+}
+
+.goalkeeper {
+    position: absolute;
+    left: 50%;
+    top: 115px;
+    transform: translateX(-50%);
+    font-size: 65px;
+    z-index: 5;
+    transition: all .45s ease;
+}
+
+.ball {
+    position: absolute;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 48px;
+    z-index: 10;
+    transition: all .55s cubic-bezier(.2,.8,.2,1);
+}
+
+.message {
+    position: absolute;
+    top: 215px;
+    left: 0;
+    width: 100%;
+    z-index: 20;
+    font-size: 30px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 5px black;
+}
+
+.controls {
+    margin-top: 15px;
+}
+
+button {
+    border: none;
+    border-radius: 12px;
+    padding: 13px 20px;
+    margin: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.direction {
+    background: #ffcf32;
+    color: #222;
+}
+
+.direction:hover {
+    background: #ffe36d;
+    transform: scale(1.05);
+}
+
+#shoot {
+    background: #e73535;
+    color: white;
+    font-size: 22px;
+    padding: 15px 35px;
+}
+
+#shoot:hover {
+    background: #ff5555;
+}
+
+#restart {
+    background: #333;
+    color: white;
+}
+
+.power-box {
+    margin: 10px auto;
+    width: 280px;
+    height: 18px;
+    background: #ddd;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid white;
+}
+
+.power {
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, #22cc55, #ffcc22, #ff3333);
+}
+
+.tip {
+    color: white;
+    font-weight: bold;
+    margin: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<h1>⚽ SÚT PENALTY ⚽</h1>
+
+<div class="info">
+    <div>⚽ Bàn: <span id="goals">0</span></div>
+    <div>🎯 Lượt: <span id="shots">0</span>/10</div>
+    <div>🏆 Kỷ lục: <span id="best">0</span></div>
+</div>
+
+<div class="field">
+
+    <div class="goal"></div>
+
+    <div class="goalkeeper" id="keeper">🧤</div>
+
+    <div class="ball" id="ball">⚽</div>
+
+    <div class="message" id="message"></div>
+
+</div>
+
+<div class="tip">
+    Chọn hướng rồi bấm SÚT!
+</div>
+
+<div class="power-box">
+    <div class="power" id="power"></div>
+</div>
+
+<div class="controls">
+
+    <div>
+        <button class="direction" onclick="selectDirection('left')">
+            ⬅️ TRÁI
+        </button>
+
+        <button class="direction" onclick="selectDirection('center')">
+            ⬆️ GIỮA
+        </button>
+
+        <button class="direction" onclick="selectDirection('right')">
+            PHẢI ➡️
+        </button>
+    </div>
+
+    <button id="shoot" onclick="shoot()">
+        ⚽ SÚT!
+    </button>
+
+    <br>
+
+    <button id="restart" onclick="restartGame()">
+        🔄 Chơi lại
+    </button>
+
+</div>
+
+</div>
+
+<script>
+
+let goals = 0;
+let shots = 0;
+let best = Number(localStorage.getItem("penaltyBest")) || 0;
+
+let direction = "center";
+let canShoot = true;
+let power = 50;
+let powerGoingUp = true;
+
+const ball = document.getElementById("ball");
+const keeper = document.getElementById("keeper");
+const message = document.getElementById("message");
+const powerBar = document.getElementById("power");
+
+document.getElementById("best").textContent = best;
+
+
+// ======================
+// THANH LỰC
+// ======================
+
+setInterval(() => {
+
+    if (!canShoot) return;
+
+    if (powerGoingUp) {
+        power += 4;
+
+        if (power >= 100) {
+            power = 100;
+            powerGoingUp = false;
+        }
+
+    } else {
+
+        power -= 4;
+
+        if (power <= 10) {
+            power = 10;
+            powerGoingUp = true;
+        }
+    }
+
+    powerBar.style.width = power + "%";
+
+}, 50);
+
+
+// ======================
+// CHỌN HƯỚNG
+// ======================
+
+function selectDirection(dir) {
+
+    if (!canShoot) return;
+
+    direction = dir;
+
+    message.textContent =
+        dir === "left" ? "⬅️ Sút TRÁI!" :
+        dir === "right" ? "Sút PHẢI! ➡️" :
+        "⬆️ Sút GIỮA!";
+}
+
+
+// ======================
+// SÚT
+// ======================
+
+function shoot() {
+
+    if (!canShoot) return;
+
+    if (shots >= 10) return;
+
+    canShoot = false;
+    shots++;
+
+    document.getElementById("shots").textContent = shots;
+
+    // Thủ môn chọn hướng
+    const keeperDirections = ["left", "center", "right"];
+
+    const keeperDirection =
+        keeperDirections[
+            Math.floor(Math.random() * 3)
+        ];
+
+    // Vị trí bóng
+    let ballX;
+
+    if (direction === "left") {
+        ballX = "27%";
+    }
+
+    else if (direction === "right") {
+        ballX = "73%";
+    }
+
+    else {
+        ballX = "50%";
+    }
+
+    // Bay bóng
+    ball.style.left = ballX;
+    ball.style.bottom = "235px";
+    ball.style.transform = "translateX(-50%) scale(0.65)";
+
+
+    // Thủ môn bay
+    if (keeperDirection === "left") {
+
+        keeper.style.left = "27%";
+        keeper.style.transform =
+            "translateX(-50%) rotate(-30deg)";
+
+    }
+
+    else if (keeperDirection === "right") {
+
+        keeper.style.left = "73%";
+        keeper.style.transform =
+            "translateX(-50%) rotate(30deg)";
+
+    }
+
+    else {
+
+        keeper.style.left = "50%";
+        keeper.style.transform =
+            "translateX(-50%)";
+    }
+
+
+    setTimeout(() => {
+
+        if (direction === keeperDirection) {
+
+            message.textContent =
+                "🧤 BỊ BẮT!";
+
+        } else {
+
+            goals++;
+
+            document.getElementById("goals").textContent =
+                goals;
+
+            message.textContent =
+                "⚽ GOOOOOL!!! 🔥";
+
+            if (goals > best) {
+
+                best = goals;
+
+                localStorage.setItem(
+                    "penaltyBest",
+                    best
+                );
+
+                document.getElementById("best").textContent =
+                    best;
+            }
+        }
+
+    }, 500);
+
+
+    setTimeout(() => {
+
+        if (shots >= 10) {
+
+            message.textContent =
+                "🏆 HẾT 10 LƯỢT! " +
+                goals + "/10 bàn!";
+
+            return;
+        }
+
+        resetShot();
+
+    }, 1300);
+}
+
+
+// ======================
+// RESET LƯỢT
+// ======================
+
+function resetShot() {
+
+    ball.style.left = "50%";
+    ball.style.bottom = "45px";
+    ball.style.transform =
+        "translateX(-50%) scale(1)";
+
+    keeper.style.left = "50%";
+    keeper.style.transform =
+        "translateX(-50%)";
+
+    message.textContent = "";
+
+    direction = "center";
+
+    canShoot = true;
+}
+
+
+// ======================
+// CHƠI LẠI
+// ======================
+
+function restartGame() {
+
+    goals = 0;
+    shots = 0;
+
+    document.getElementById("goals").textContent = 0;
+    document.getElementById("shots").textContent = 0;
+
+    resetShot();
+}
+
+
+// ======================
+// PHÍM BÀN PHÍM
+// ======================
+
+document.addEventListener("keydown", function(e) {
+
+    if (e.key === "ArrowLeft") {
+        selectDirection("left");
+    }
+
+    if (e.key === "ArrowUp") {
+        selectDirection("center");
+    }
+
+    if (e.key === "ArrowRight") {
+        selectDirection("right");
+    }
+
+    if (e.code === "Space") {
+        e.preventDefault();
+        shoot();
+    }
+
+});
+
+</script>
+
+</body>
+</html>

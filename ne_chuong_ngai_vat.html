@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Né Chướng Ngại Vật</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #172554, #020617 70%);
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+  .wrap { text-align: center; width: min(94vw, 900px); }
+  h1 { margin: 0 0 10px; font-size: 32px; }
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 auto 8px;
+    max-width: 820px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 820px;
+    height: auto;
+    margin: auto;
+    border: 3px solid #334155;
+    border-radius: 14px;
+    background: #020617;
+    box-shadow: 0 15px 50px rgba(0,0,0,.45);
+  }
+  button {
+    margin-top: 14px;
+    padding: 11px 24px;
+    border: 0;
+    border-radius: 999px;
+    background: #38bdf8;
+    color: #082f49;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  button:hover { transform: translateY(-1px); }
+  p { margin: 9px 0 0; color: #cbd5e1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🚀 Né Chướng Ngại Vật</h1>
+  <div class="hud">
+    <span>⭐ Điểm: <span id="score">0</span></span>
+    <span>❤️ Mạng: <span id="lives">3</span></span>
+    <span>🏆 Kỷ lục: <span id="high">0</span></span>
+  </div>
+  <canvas id="game" width="820" height="520"></canvas>
+  <button id="restart">Chơi lại</button>
+  <p>Dùng ← → hoặc A/D để di chuyển. Né các khối đỏ!</p>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const highEl = document.getElementById("high");
+const restartBtn = document.getElementById("restart");
+
+let keys = {};
+let player, obstacles, stars, score, lives, gameOver, lastTime, spawnTimer, starTimer, speed;
+let highScore = Number(localStorage.getItem("neHighScore") || 0);
+highEl.textContent = highScore;
+
+document.addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+  if (["arrowleft","arrowright"," "].includes(e.key.toLowerCase())) e.preventDefault();
+  if (gameOver && e.key === "Enter") reset();
+});
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+restartBtn.addEventListener("click", reset);
+
+function reset() {
+  player = { x: canvas.width/2 - 22, y: canvas.height - 65, w: 44, h: 44, speed: 420 };
+  obstacles = [];
+  stars = [];
+  score = 0;
+  lives = 3;
+  speed = 150;
+  spawnTimer = 0;
+  starTimer = 0;
+  gameOver = false;
+  lastTime = performance.now();
+  updateHUD();
+}
+
+function updateHUD() {
+  scoreEl.textContent = Math.floor(score);
+  livesEl.textContent = lives;
+  highEl.textContent = highScore;
+}
+
+function rectHit(a,b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x &&
+         a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function spawnObstacle() {
+  const size = 25 + Math.random()*35;
+  obstacles.push({
+    x: Math.random()*(canvas.width-size),
+    y: -size,
+    w: size,
+    h: size,
+    vy: speed + Math.random()*100
+  });
+}
+
+function spawnStar() {
+  stars.push({
+    x: 18 + Math.random()*(canvas.width-36),
+    y: -20,
+    r: 9,
+    vy: speed*0.75
+  });
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  for (let i=0;i<70;i++) {
+    const x = (i*137)%canvas.width;
+    const y = ((i*83 + score*0.25)%canvas.height);
+    ctx.fillStyle = i%3 ? "#64748b" : "#e2e8f0";
+    ctx.globalAlpha = .35;
+    ctx.fillRect(x,y,2,2);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 2;
+  for (let x=0;x<canvas.width;x+=50) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+}
+
+function drawPlayer() {
+  ctx.save();
+  ctx.translate(player.x+player.w/2, player.y+player.h/2);
+  ctx.fillStyle = "#38bdf8";
+  ctx.beginPath();
+  ctx.moveTo(0,-25);
+  ctx.lineTo(20,20);
+  ctx.lineTo(0,13);
+  ctx.lineTo(-20,20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#f8fafc";
+  ctx.beginPath(); ctx.arc(0,-2,6,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawObstacle(o) {
+  ctx.fillStyle = "#ef4444";
+  ctx.shadowColor = "#ef4444";
+  ctx.shadowBlur = 14;
+  ctx.fillRect(o.x,o.y,o.w,o.h);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#fecaca";
+  ctx.fillRect(o.x+5,o.y+5,Math.max(3,o.w-10),4);
+}
+
+function drawStar(s) {
+  ctx.fillStyle = "#facc15";
+  ctx.shadowColor = "#facc15";
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  for(let i=0;i<10;i++){
+    const r = i%2 ? s.r*.45 : s.r;
+    const a = -Math.PI/2 + i*Math.PI/5;
+    const x = s.x + Math.cos(a)*r;
+    const y = s.y + Math.sin(a)*r;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(2,6,23,.78)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "white";
+  ctx.font = "bold 52px Arial";
+  ctx.fillText("GAME OVER", canvas.width/2, 225);
+  ctx.font = "bold 25px Arial";
+  ctx.fillStyle = "#facc15";
+  ctx.fillText("Điểm: " + Math.floor(score), canvas.width/2, 270);
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillText("Nhấn Enter hoặc Chơi lại để thử tiếp", canvas.width/2, 315);
+}
+
+function update(dt) {
+  if(gameOver) return;
+
+  if(keys["arrowleft"] || keys["a"]) player.x -= player.speed*dt;
+  if(keys["arrowright"] || keys["d"]) player.x += player.speed*dt;
+  player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
+
+  score += dt*10;
+  speed += dt*2;
+
+  spawnTimer -= dt;
+  starTimer -= dt;
+
+  if(spawnTimer <= 0) {
+    spawnObstacle();
+    spawnTimer = Math.max(.25, .85 - score/1200);
+  }
+  if(starTimer <= 0) {
+    spawnStar();
+    starTimer = 1.4 + Math.random()*1.4;
+  }
+
+  for(const o of obstacles) o.y += o.vy*dt;
+  for(const s of stars) s.y += s.vy*dt;
+
+  for(let i=obstacles.length-1;i>=0;i--) {
+    const o = obstacles[i];
+    if(rectHit(player,o)) {
+      obstacles.splice(i,1);
+      lives--;
+      if(lives <= 0) {
+        gameOver = true;
+        if(Math.floor(score) > highScore) {
+          highScore = Math.floor(score);
+          localStorage.setItem("neHighScore", highScore);
+        }
+      }
+    } else if(o.y > canvas.height+50) obstacles.splice(i,1);
+  }
+
+  for(let i=stars.length-1;i>=0;i--) {
+    const s = stars[i];
+    const box = {x:s.x-s.r,y:s.y-s.r,w:s.r*2,h:s.r*2};
+    if(rectHit(player,box)) {
+      score += 50;
+      stars.splice(i,1);
+    } else if(s.y > canvas.height+30) stars.splice(i,1);
+  }
+
+  updateHUD();
+}
+
+function draw() {
+  drawBackground();
+  stars.forEach(drawStar);
+  obstacles.forEach(drawObstacle);
+  drawPlayer();
+  if(gameOver) drawGameOver();
+}
+
+function loop(t) {
+  const dt = Math.min((t-lastTime)/1000, .05);
+  lastTime = t;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

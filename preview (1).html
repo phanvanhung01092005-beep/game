@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rắn Săn Mồi</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #071a12, #102b20);
+        color: white;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .game {
+        width: 95%;
+        max-width: 500px;
+        text-align: center;
+    }
+
+    h1 {
+        margin: 10px 0;
+        color: #55ff88;
+        font-size: 36px;
+    }
+
+    .info {
+        display: flex;
+        justify-content: space-between;
+        background: #0d2118;
+        padding: 12px 18px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        font-size: 18px;
+    }
+
+    canvas {
+        width: 100%;
+        max-width: 450px;
+        aspect-ratio: 1 / 1;
+        background: #06110c;
+        border: 4px solid #35d66f;
+        border-radius: 12px;
+        display: block;
+        margin: auto;
+        box-shadow: 0 0 25px rgba(50, 255, 120, 0.2);
+    }
+
+    button {
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+        user-select: none;
+    }
+
+    #restart {
+        margin-top: 15px;
+        padding: 12px 25px;
+        background: #20b85a;
+        font-size: 17px;
+    }
+
+    #restart:hover {
+        background: #2cdb70;
+    }
+
+    .controls {
+        width: 220px;
+        margin: 20px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .control {
+        height: 55px;
+        background: #174d32;
+        font-size: 25px;
+    }
+
+    .control:hover {
+        background: #237747;
+    }
+
+    .up {
+        grid-column: 2;
+    }
+
+    .left {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .down {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .right {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    .message {
+        min-height: 25px;
+        margin-top: 10px;
+        color: #ffd45c;
+        font-weight: bold;
+    }
+
+    .help {
+        color: #aaa;
+        font-size: 14px;
+        margin-top: 10px;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+    <h1>🐍 RẮN SĂN MỒI</h1>
+
+    <div class="info">
+        <div>🏆 Điểm: <span id="score">0</span></div>
+        <div>⭐ Kỷ lục: <span id="best">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="450" height="450"></canvas>
+
+    <div class="message" id="message"></div>
+
+    <button id="restart">🔄 Chơi lại</button>
+
+    <div class="controls">
+        <button class="control up" onclick="changeDirection('up')">⬆️</button>
+        <button class="control left" onclick="changeDirection('left')">⬅️</button>
+        <button class="control down" onclick="changeDirection('down')">⬇️</button>
+        <button class="control right" onclick="changeDirection('right')">➡️</button>
+    </div>
+
+    <div class="help">
+        Dùng phím mũi tên hoặc các nút bên dưới để điều khiển 🐍
+    </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const box = 30;
+const rows = canvas.width / box;
+
+let snake;
+let food;
+let direction;
+let nextDirection;
+let score;
+let gameOver;
+let gameSpeed;
+let timer;
+
+let best = Number(localStorage.getItem("snakeBest")) || 0;
+document.getElementById("best").textContent = best;
+
+
+// ==========================
+// BẮT ĐẦU GAME
+// ==========================
+function startGame() {
+
+    snake = [
+        { x: 7, y: 7 },
+        { x: 6, y: 7 },
+        { x: 5, y: 7 }
+    ];
+
+    direction = "right";
+    nextDirection = "right";
+
+    score = 0;
+    gameOver = false;
+    gameSpeed = 130;
+
+    document.getElementById("score").textContent = score;
+    document.getElementById("message").textContent = "";
+
+    createFood();
+
+    clearInterval(timer);
+    timer = setInterval(gameLoop, gameSpeed);
+
+    draw();
+}
+
+
+// ==========================
+// TẠO MỒI
+// ==========================
+function createFood() {
+
+    do {
+        food = {
+            x: Math.floor(Math.random() * rows),
+            y: Math.floor(Math.random() * rows)
+        };
+    } while (
+        snake.some(part =>
+            part.x === food.x && part.y === food.y
+        )
+    );
+}
+
+
+// ==========================
+// ĐỔI HƯỚNG
+// ==========================
+function changeDirection(newDirection) {
+
+    if (gameOver) return;
+
+    if (newDirection === "up" && direction !== "down") {
+        nextDirection = "up";
+    }
+
+    if (newDirection === "down" && direction !== "up") {
+        nextDirection = "down";
+    }
+
+    if (newDirection === "left" && direction !== "right") {
+        nextDirection = "left";
+    }
+
+    if (newDirection === "right" && direction !== "left") {
+        nextDirection = "right";
+    }
+}
+
+
+// ==========================
+// BÀN PHÍM
+// ==========================
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowUp") {
+        event.preventDefault();
+        changeDirection("up");
+    }
+
+    if (event.key === "ArrowDown") {
+        event.preventDefault();
+        changeDirection("down");
+    }
+
+    if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        changeDirection("left");
+    }
+
+    if (event.key === "ArrowRight") {
+        event.preventDefault();
+        changeDirection("right");
+    }
+
+    if (event.key === "Enter" && gameOver) {
+        startGame();
+    }
+});
+
+
+// ==========================
+// GAME LOOP
+// ==========================
+function gameLoop() {
+
+    direction = nextDirection;
+
+    let head = {
+        x: snake[0].x,
+        y: snake[0].y
+    };
+
+    if (direction === "up") {
+        head.y--;
+    }
+
+    if (direction === "down") {
+        head.y++;
+    }
+
+    if (direction === "left") {
+        head.x--;
+    }
+
+    if (direction === "right") {
+        head.x++;
+    }
+
+
+    // ĐỤNG TƯỜNG
+    if (
+        head.x < 0 ||
+        head.x >= rows ||
+        head.y < 0 ||
+        head.y >= rows
+    ) {
+        endGame();
+        return;
+    }
+
+
+    // ĐỤNG THÂN
+    if (
+        snake.some(part =>
+            part.x === head.x && part.y === head.y
+        )
+    ) {
+        endGame();
+        return;
+    }
+
+
+    snake.unshift(head);
+
+
+    // ĂN MỒI
+    if (
+        head.x === food.x &&
+        head.y === food.y
+    ) {
+
+        score++;
+
+        document.getElementById("score").textContent = score;
+
+        if (score > best) {
+            best = score;
+            localStorage.setItem("snakeBest", best);
+            document.getElementById("best").textContent = best;
+        }
+
+        createFood();
+
+        // Tăng tốc
+        if (gameSpeed > 60) {
+            gameSpeed -= 5;
+
+            clearInterval(timer);
+            timer = setInterval(gameLoop, gameSpeed);
+        }
+
+    } else {
+
+        snake.pop();
+    }
+
+    draw();
+}
+
+
+// ==========================
+// VẼ GAME
+// ==========================
+function draw() {
+
+    // nền
+    ctx.fillStyle = "#06110c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+    // ô nền
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x < rows; x++) {
+        for (let y = 0; y < rows; y++) {
+
+            ctx.strokeRect(
+                x * box,
+                y * box,
+                box,
+                box
+            );
+        }
+    }
+
+
+    // MỒI
+    ctx.font = "24px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(
+        "🍎",
+        food.x * box + box / 2,
+        food.y * box + box / 2
+    );
+
+
+    // RẮN
+    snake.forEach((part, index) => {
+
+        if (index === 0) {
+            ctx.fillStyle = "#55ff88";
+        } else {
+            ctx.fillStyle = "#22b85c";
+        }
+
+        ctx.beginPath();
+
+        ctx.roundRect(
+            part.x * box + 2,
+            part.y * box + 2,
+            box - 4,
+            box - 4,
+            7
+        );
+
+        ctx.fill();
+    });
+
+
+    // MẮT RẮN
+    let head = snake[0];
+
+    ctx.fillStyle = "#06110c";
+
+    if (direction === "right") {
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 20,
+            head.y * box + 9,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 20,
+            head.y * box + 21,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+    } else if (direction === "left") {
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 10,
+            head.y * box + 9,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 10,
+            head.y * box + 21,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+    } else if (direction === "up") {
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 9,
+            head.y * box + 10,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 21,
+            head.y * box + 10,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+    } else {
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 9,
+            head.y * box + 20,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(
+            head.x * box + 21,
+            head.y * box + 20,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+    }
+
+
+    // GAME OVER
+    if (gameOver) {
+
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 38px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "GAME OVER",
+            canvas.width / 2,
+            canvas.height / 2 - 20
+        );
+
+        ctx.font = "20px Arial";
+
+        ctx.fillText(
+            "Điểm: " + score,
+            canvas.width / 2,
+            canvas.height / 2 + 20
+        );
+
+        ctx.font = "16px Arial";
+
+        ctx.fillText(
+            "Bấm Chơi lại để tiếp tục",
+            canvas.width / 2,
+            canvas.height / 2 + 55
+        );
+    }
+}
+
+
+// ==========================
+// GAME OVER
+// ==========================
+function endGame() {
+
+    gameOver = true;
+
+    clearInterval(timer);
+
+    document.getElementById("message").textContent =
+        "💀 Rắn đã chết!";
+
+    draw();
+}
+
+
+// ==========================
+// CHƠI LẠI
+// ==========================
+document.getElementById("restart").addEventListener(
+    "click",
+    startGame
+);
+
+
+// CHẠY GAME
+startGame();
+
+</script>
+
+</body>
+</html>

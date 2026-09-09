@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎲 Tài Xỉu - Xu Ảo</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;min-height:100vh;background:linear-gradient(135deg,#07111f,#101a35 50%,#07111f);
+ color:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;
+}
+.app{width:min(1100px,96vw);padding:22px 0 35px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+h1{margin:0;font-size:30px}.coins{
+ background:#18243e;border:1px solid #344565;padding:11px 18px;border-radius:14px;
+ color:#ffd84d;font-weight:bold;font-size:18px
+}
+.table{
+ background:radial-gradient(circle at 50% 35%,#263f36,#10251e 55%,#09150f);
+ border:5px solid #3d2b18;border-radius:28px;padding:28px 24px;
+ box-shadow:0 18px 60px #0008
+}
+.cup-area{text-align:center;min-height:290px;position:relative}
+.cup{
+ width:205px;height:150px;margin:22px auto 5px;position:relative;
+ background:linear-gradient(160deg,#e8e8e8,#777);
+ border-radius:18px 18px 48% 48%;border:7px solid #454545;
+ box-shadow:inset -15px -15px 25px #0006,0 18px 30px #0008;
+ transform-origin:50% 90%;
+}
+.cup:before{
+ content:"";position:absolute;left:24px;right:24px;top:-15px;height:38px;
+ border-radius:50%;background:#303030;border:5px solid #555
+}
+.cup.shake{animation:shake .7s ease-in-out 2}
+@keyframes shake{
+ 0%,100%{transform:rotate(0) translateX(0)}
+ 15%{transform:rotate(-9deg) translateX(-18px)}
+ 30%{transform:rotate(9deg) translateX(18px)}
+ 45%{transform:rotate(-8deg) translateX(-14px)}
+ 60%{transform:rotate(8deg) translateX(14px)}
+ 75%{transform:rotate(-5deg)}
+}
+.dice{
+ display:flex;justify-content:center;gap:18px;position:absolute;top:105px;left:0;right:0;
+ opacity:0;transform:translateY(12px) scale(.8);transition:.25s
+}
+.dice.show{opacity:1;transform:none}
+.die{
+ width:92px;height:92px;background:#fafafa;color:#111;border-radius:15px;
+ border:3px solid #ddd;display:grid;place-items:center;font-size:55px;
+ box-shadow:0 8px 18px #0007
+}
+.result{font-size:34px;font-weight:900;min-height:42px;margin-top:6px}
+.tai{color:#ff9f43}.xiu{color:#5eb7ff}
+.total{font-size:18px;color:#cbd5e1}
+.betting{
+ display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:25px
+}
+.bet{
+ border:2px solid #475569;border-radius:18px;padding:18px;background:#0d1729;
+ cursor:pointer;transition:.2s
+}
+.bet:hover{transform:translateY(-2px);border-color:#94a3b8}
+.bet.selected.taiBet{border-color:#ff8c35;box-shadow:0 0 22px #ff8c3538}
+.bet.selected.xiuBet{border-color:#4daeff;box-shadow:0 0 22px #4daeff38}
+.bet h2{margin:0 0 5px;font-size:26px}.bet p{margin:0 0 14px;color:#aab7cc}
+.amounts{display:flex;gap:7px;flex-wrap:wrap}
+.amounts button,.actions button{
+ border:0;border-radius:9px;padding:9px 13px;font-weight:bold;cursor:pointer
+}
+.amounts button{background:#253451;color:#fff}
+.amounts button:hover{background:#3a4d70}
+.amount{margin-top:10px;color:#ffd84d;font-weight:bold}
+.actions{text-align:center;margin-top:18px}
+.roll{
+ padding:15px 42px!important;border-radius:14px!important;background:#eab308;color:#251700;
+ font-size:20px;box-shadow:0 6px 0 #a16207
+}
+.roll:active{transform:translateY(3px);box-shadow:0 3px 0 #a16207}
+.roll:disabled{opacity:.5;cursor:not-allowed}
+.msg{min-height:25px;margin-top:12px;color:#cbd5e1}
+.history{margin-top:20px;background:#0a1220;border-radius:15px;padding:14px}
+.history h3{margin:0 0 10px}
+.histrow{display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #1e293b}
+.histrow:last-child{border:0}
+.note{text-align:center;color:#7f8ea8;font-size:12px;margin-top:14px}
+@media(max-width:650px){
+ .betting{grid-template-columns:1fr}.die{width:72px;height:72px;font-size:43px}
+ .dice{gap:10px}.cup{width:170px}.top{gap:10px;align-items:flex-start;flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <div class="top">
+  <h1>🎲 TÀI XỈU</h1>
+  <div class="coins">🪙 Xu ảo: <span id="coins">1000</span></div>
+ </div>
+
+ <div class="table">
+  <div class="cup-area">
+   <div class="cup" id="cup"></div>
+   <div class="dice" id="dice">
+    <div class="die" id="d1">⚀</div>
+    <div class="die" id="d2">⚀</div>
+    <div class="die" id="d3">⚀</div>
+   </div>
+   <div class="result" id="result">Chọn Tài hoặc Xỉu</div>
+   <div class="total" id="total">3 xúc xắc • Tổng: —</div>
+  </div>
+
+  <div class="betting">
+   <div class="bet" id="taiBox" onclick="selectSide('tai')">
+    <h2 class="tai">🔥 TÀI</h2>
+    <p>Tổng từ 11 đến 18</p>
+    <div class="amounts">
+     <button onclick="setAmount(event,'tai',10)">10</button>
+     <button onclick="setAmount(event,'tai',50)">50</button>
+     <button onclick="setAmount(event,'tai',100)">100</button>
+     <button onclick="setAmount(event,'tai',500)">500</button>
+    </div>
+    <div class="amount">Đặt: <span id="taiAmount">0</span> xu</div>
+   </div>
+
+   <div class="bet" id="xiuBox" onclick="selectSide('xiu')">
+    <h2 class="xiu">❄️ XỈU</h2>
+    <p>Tổng từ 3 đến 10</p>
+    <div class="amounts">
+     <button onclick="setAmount(event,'xiu',10)">10</button>
+     <button onclick="setAmount(event,'xiu',50)">50</button>
+     <button onclick="setAmount(event,'xiu',100)">100</button>
+     <button onclick="setAmount(event,'xiu',500)">500</button>
+    </div>
+    <div class="amount">Đặt: <span id="xiuAmount">0</span> xu</div>
+   </div>
+  </div>
+
+  <div class="actions">
+   <button class="roll" id="rollBtn" onclick="roll()">🎲 XÓC XÚC XẮC</button>
+   <div class="msg" id="msg">Chọn cửa và số xu ảo rồi bấm Xóc.</div>
+  </div>
+
+  <div class="history">
+   <h3>📜 Lịch sử ván</h3>
+   <div id="history">Chưa có ván nào.</div>
+  </div>
+
+  <div class="note">
+   Chỉ là trò chơi mô phỏng dùng xu ảo, không có tiền thật, không nạp/rút tiền.
+  </div>
+ </div>
+</div>
+
+<script>
+const face=["⚀","⚁","⚂","⚃","⚄","⚅"];
+let coins=Number(localStorage.getItem("txCoins")||1000);
+let bets={tai:0,xiu:0};
+let side=null,rolling=false,rounds=[];
+
+const $=id=>document.getElementById(id);
+
+function save(){localStorage.setItem("txCoins",coins)}
+function update(){
+ $("coins").textContent=coins;
+ $("taiAmount").textContent=bets.tai;
+ $("xiuAmount").textContent=bets.xiu;
+}
+function selectSide(s){
+ if(rolling)return;
+ side=s;
+ $("taiBox").classList.toggle("selected",s==="tai");
+ $("xiuBox").classList.toggle("selected",s==="xiu");
+ $("msg").textContent=s==="tai"?"Đã chọn cửa TÀI. Chọn mức xu ảo.":"Đã chọn cửa XỈU. Chọn mức xu ảo.";
+}
+function setAmount(e,s,n){
+ e.stopPropagation();
+ if(rolling)return;
+ side=s;
+ $("taiBox").classList.toggle("selected",s==="tai");
+ $("xiuBox").classList.toggle("selected",s==="xiu");
+ if(coins < n){$("msg").textContent="Không đủ xu ảo.";return}
+ bets[s]=n;
+ $("msg").textContent=`Đã chọn ${s==="tai"?"TÀI":"XỈU"} ${n} xu ảo.`;
+ update();
+}
+function renderHistory(){
+ if(!rounds.length){$("history").textContent="Chưa có ván nào.";return}
+ $("history").innerHTML=rounds.map((r,i)=>`
+ <div class="histrow">
+   <span>Ván ${rounds.length-i}: ${face[r.a-1]} ${face[r.b-1]} ${face[r.c-1]}</span>
+   <span>Tổng ${r.sum} — <b class="${r.result==='Tài'?'tai':'xiu'}">${r.result}</b></span>
+ </div>`).join("");
+}
+function roll(){
+ if(rolling)return;
+ if(!side){$("msg").textContent="⚠️ Hãy chọn Tài hoặc Xỉu trước.";return}
+ if(bets[side]<=0){$("msg").textContent="⚠️ Hãy chọn số xu ảo muốn đặt.";return}
+ if(bets[side]>coins){$("msg").textContent="⚠️ Không đủ xu ảo.";return}
+
+ rolling=true;
+ $("rollBtn").disabled=true;
+ $("result").textContent="Đang xóc...";
+ $("result").className="result";
+ $("total").textContent="Đang lắc 3 xúc xắc...";
+ $("dice").classList.remove("show");
+ $("cup").classList.add("shake");
+
+ let interval=setInterval(()=>{
+   for(const d of [$("d1"),$("d2"),$("d3")])
+     d.textContent=face[Math.floor(Math.random()*6)];
+ },80);
+
+ setTimeout(()=>{
+   clearInterval(interval);
+   $("cup").classList.remove("shake");
+
+   const a=1+Math.floor(Math.random()*6);
+   const b=1+Math.floor(Math.random()*6);
+   const c=1+Math.floor(Math.random()*6);
+   const sum=a+b+c;
+   const result=sum<=10?"Xỉu":"Tài";
+
+   $("d1").textContent=face[a-1];
+   $("d2").textContent=face[b-1];
+   $("d3").textContent=face[c-1];
+   $("dice").classList.add("show");
+
+   coins-=bets[side];
+
+   if(side===result.toLowerCase()){
+     coins+=bets[side]*2;
+     $("msg").textContent=`🎉 Bạn thắng! Nhận ${bets[side]*2} xu ảo.`;
+   }else{
+     $("msg").textContent=`😅 Bạn thua lượt này. Kết quả là ${result}.`;
+   }
+
+   $("result").textContent=result.toUpperCase();
+   $("result").className="result "+(result==="Tài"?"tai":"xiu");
+   $("total").textContent=`3 xúc xắc • Tổng: ${sum}`;
+
+   rounds.unshift({a,b,c,sum,result});
+   rounds=rounds.slice(0,12);
+
+   bets={tai:0,xiu:0};
+   side=null;
+   $("taiBox").classList.remove("selected");
+   $("xiuBox").classList.remove("selected");
+
+   save(); update(); renderHistory();
+   rolling=false;
+   $("rollBtn").disabled=false;
+ },1500);
+}
+update();
+</script>
+</body>
+</html>
